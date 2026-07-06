@@ -36,6 +36,7 @@ public class Il2CppMethodDefinition : MetadataBase {
     public Il2CppTypeDefinition DeclaringType { get; private set; }
 
     public string Name;
+    public int Index => _index;
 
  
     protected override void PostProcess() {

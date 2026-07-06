@@ -86,6 +86,12 @@ public class MetadataHeader : MetadataBase {
     [MetadataTag(0x1FC, MetadataOperation.XOR, 0x6238CDB0)]
     public int FieldDefaultValuesOffset { get; private set; }
 
+    [MetadataTag(0x18, MetadataOperation.ADD, 0xE6CD8E6CL)]
+    public int CustomAttributeRangeOffset { get; private set; }
+
+    [MetadataTag(0x1EC, MetadataOperation.ADD, 0xA75A2A51L)]
+    public int CustomAttributeTypesOffset { get; private set; }
+
     public MetadataHeader(byte[] bytes) : base(bytes) {
         Populate();
     }
@@ -105,6 +111,8 @@ public class MetadataHeader : MetadataBase {
         Console.WriteLine($"  method table offset: 0x{_instance.MethodOffset:X}");
         Console.WriteLine($"  parameter table offset: 0x{_instance.ParametersOffset:X}");
         Console.WriteLine($"  string data offset: 0x{_instance.StringOffset:X}");
+        Console.WriteLine($"  custom attribute range offset: 0x{_instance.CustomAttributeRangeOffset:X}");
+        Console.WriteLine($"  custom attribute type list offset: 0x{_instance.CustomAttributeTypesOffset:X}");
         Console.WriteLine($"  image count: {_instance.ImagesSize / 40}");
         Console.WriteLine($"  type count: {_instance.TypeDefinitionsSize / 70}");
     }

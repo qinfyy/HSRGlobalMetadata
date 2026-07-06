@@ -79,6 +79,7 @@ public static class DumpWriter {
         }
         
         if (indent != 0) sb.AppendLine();
+        AppendCustomAttributes(sb, pad, CustomAttributeCache.TypeToken(typeDefIndex));
         sb.Append(pad).Append(typeAttrs).Append(' ').Append(typeName);
     
         var inherits = new List<string>();
@@ -103,7 +104,7 @@ public static class DumpWriter {
             sb.AppendLine().Append(innerPad).AppendLine("// Fields:");
             for (int n = 0; n < typeDef.FieldCount; n++) {
                 var fieldDef = new Il2CppFieldDefinition(typeDef.FieldStart, fieldOffsetIndex, typeDef.FieldStart + n);
-                WriteField(sb, fieldDef, indent + 1);
+                WriteField(sb, fieldDef, typeDef.FieldStart + n, indent + 1);
             }
         }
         
@@ -134,7 +135,8 @@ public static class DumpWriter {
         sb.AppendLine().Append(pad).AppendLine("// Events:");
 
         for (int n = 0; n < typeDef.EventCount; n++) {
-            var ev = new Il2CppEventDefinition(typeDef.EventStart + n);
+            int eventIndex = typeDef.EventStart + n;
+            var ev = new Il2CppEventDefinition(eventIndex);
         
             string eventAttrs = "";
             if (ev.AddMethodIndex != -1) {
@@ -157,6 +159,7 @@ public static class DumpWriter {
             string add = ev.AddMethodIndex != -1 ? "add; " : "";
             string remove = ev.RemoveMethodIndex != -1 ? "remove; " : "";
             string raise = ev.RaiseMethodIndex != -1 ? "raise; " : "";
+            AppendCustomAttributes(sb, pad, CustomAttributeCache.EventToken(eventIndex));
             sb.Append(pad).Append(eventAttrs).Append(" event ").Append(typeName)
               .Append(' ').Append(ev.Name).Append(" { ").Append(add).Append(remove).Append(raise).AppendLine("}");
         }
@@ -167,7 +170,8 @@ public static class DumpWriter {
         sb.AppendLine().Append(pad).AppendLine("// Properties:");
 
         for (int n = 0; n < typeDef.PropertyCount; n++) {
-            var prop = new Il2CppPropertyDefinition(typeDef.PropertyStart + n);
+            int propertyIndex = typeDef.PropertyStart + n;
+            var prop = new Il2CppPropertyDefinition(propertyIndex);
 
             string typeName = "object";
             if (prop.GetMethodIndex != -1) {
@@ -183,17 +187,19 @@ public static class DumpWriter {
 
             string getStr = prop.GetMethodIndex != -1 ? "get; " : "";
             string setStr = prop.SetMethodIndex != -1 ? "set; " : "";
+            AppendCustomAttributes(sb, pad, CustomAttributeCache.PropertyToken(propertyIndex));
             sb.Append(pad).Append(typeName).Append(' ').Append(prop.Name)
               .Append(" { ").Append(getStr).Append(setStr)
               .AppendLine("}");
         }
     }
 
-    static void WriteField(StringBuilder sb, Il2CppFieldDefinition fieldDef, int indent) {
+    static void WriteField(StringBuilder sb, Il2CppFieldDefinition fieldDef, int fieldIndex, int indent) {
         string pad = _pads[indent];
         string attrs = AttributeFormatter.FormatField((FieldAttributes)fieldDef.Type.Attrs);
         string typeName = fieldDef.Type.Name();
 
+        AppendCustomAttributes(sb, pad, CustomAttributeCache.FieldToken(fieldIndex));
         sb.Append(pad).Append(attrs).Append(' ').Append(typeName).Append(' ').Append(fieldDef.Name);
     
         if (((FieldAttributes)fieldDef.Type.Attrs & FieldAttributes.Literal) != 0)
@@ -254,7 +260,7 @@ public static class DumpWriter {
             var paramParts = new List<string>(method.ParametersCount);
             for (int j = 0; j < method.ParametersCount; j++) {
                 var param = new Il2CppParameterDefinition(method.ParametersStart + j);
-                string paramName = param.Name.Length != 0 ? param.Name : $"arg{j}";
+                string paramName = param.Name.Length != 0 ? param.Name : $"arg{j + 1}";
                 paramParts.Add($"{param.Type.Name()} {paramName}");
             }
             paramString = string.Join(", ", paramParts);
@@ -266,6 +272,7 @@ public static class DumpWriter {
             ? method.MethodPointer - (long)PEHelper.ImageBase
             : method.MethodPointer;
 
+        AppendCustomAttributes(sb, pad, CustomAttributeCache.MethodToken(method.Index));
         sb.Append(pad).Append(attrs).Append(' ')
           .Append(method.ReturnType.Name()).Append(' ')
           .Append(methodName).Append(genericSuffix)
@@ -273,6 +280,11 @@ public static class DumpWriter {
           .Append(constraintSuffix)
           .Append(" {} // VA: 0x").Append(method.MethodPointer.ToString("X"))
           .Append(", RVA: 0x").AppendLine(rva.ToString("X"));
+    }
+
+    static void AppendCustomAttributes(StringBuilder sb, string pad, uint token) {
+        foreach (var attr in MetadataCache.CustomAttributes.Get(token))
+            sb.Append(pad).Append('[').Append(attr).AppendLine("]");
     }
 
     static void WriteAssemblyInfo(StreamWriter writer) {

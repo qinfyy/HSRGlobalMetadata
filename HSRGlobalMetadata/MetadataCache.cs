@@ -9,6 +9,7 @@ public static class MetadataCache {
     public static Il2CppTypeDefinition[] TypeDefs { get; private set; }
     public static Il2CppImageDefinition[] Images { get; private set; }
     public static Il2CppType[] Types { get; private set; }
+    public static CustomAttributeCache CustomAttributes { get; private set; } = null!;
     public static Dictionary<int, (int typeIndex, int dataOffset)> FieldDefaultValues { get; private set; }
     public static Dictionary<int, Il2CppGenericFunctionDefinition> GenericFuncDefs { get; private set; } 
     
@@ -30,6 +31,8 @@ public static class MetadataCache {
         Types = new Il2CppType[MetadataRegistration.Instance.TypeInfoCount];
         for (int i = 0; i < MetadataRegistration.Instance.TypeInfoCount; i++) 
             Types[i] = Il2CppType.FromIndex(i);
+
+        CustomAttributes = CustomAttributeCache.Create();
         
         var metadata = MetadataContext.Instance.Metadata;
         int offset = header.FieldDefaultValuesOffset;
