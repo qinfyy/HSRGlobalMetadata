@@ -254,9 +254,8 @@ public static class DumpWriter {
             var paramParts = new List<string>(method.ParametersCount);
             for (int j = 0; j < method.ParametersCount; j++) {
                 var param = new Il2CppParameterDefinition(method.ParametersStart + j);
-                paramParts.Add(param.Name.Length != 0
-                    ? $"{param.Type.Name()} {param.Name}"
-                    : param.Type.Name());
+                string paramName = param.Name.Length != 0 ? param.Name : $"arg{j}";
+                paramParts.Add($"{param.Type.Name()} {paramName}");
             }
             paramString = string.Join(", ", paramParts);
         }
