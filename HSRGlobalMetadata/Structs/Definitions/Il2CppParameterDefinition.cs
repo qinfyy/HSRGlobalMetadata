@@ -1,4 +1,4 @@
-using HSRGlobalMetadata.Structs.Runtime;
+﻿using HSRGlobalMetadata.Structs.Runtime;
 using HSRGlobalMetadata.Utils;
 
 namespace HSRGlobalMetadata.Structs.Definitions;
@@ -28,6 +28,6 @@ public class Il2CppParameterDefinition : MetadataBase {
 
         Name = StringProcessor.Decrypt(NameIndex);
         if (TypeIndex != -1)
-            Type = Il2CppType.FromIndex(TypeIndex);
+            Type = Il2CppType.FromSignatureIndex(TypeIndex);
     }
 }

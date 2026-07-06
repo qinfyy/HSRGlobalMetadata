@@ -1,8 +1,9 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Text;
 using HSRGlobalMetadata.Structs;
 using HSRGlobalMetadata.Structs.Definitions;
 using HSRGlobalMetadata.Structs.Runtime;
+using HSRGlobalMetadata.Utils;
 
 namespace HSRGlobalMetadata.Output;
 
@@ -89,7 +90,7 @@ public static class DumpWriter {
             for (int k = 0; k < typeDef.InterfaceCount; k++) {
                 int typeInterface = MemoryMarshal.Read<int>(metadata.AsSpan(baseOffset + k * 4));
                 if (typeInterface != -1)
-                    inherits.Add(Il2CppType.FromIndex(typeInterface).Name());
+                    inherits.Add(Il2CppType.FromMetadataIndex(typeInterface).Name());
             }
         }
         if (inherits.Count > 0)
@@ -262,8 +263,8 @@ public static class DumpWriter {
 
         string attrs = isInterface ? "" : AttributeFormatter.FormatMethod((MethodAttributes)method.Flags);
 
-        long rva = method.MethodPointer > 0x180000000
-            ? method.MethodPointer - 0x180000000
+        long rva = method.MethodPointer > (long)PEHelper.ImageBase
+            ? method.MethodPointer - (long)PEHelper.ImageBase
             : method.MethodPointer;
 
         sb.Append(pad).Append(attrs).Append(' ')

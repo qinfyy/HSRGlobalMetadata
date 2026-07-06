@@ -1,4 +1,4 @@
-using HSRGlobalMetadata.Structs.Runtime;
+﻿using HSRGlobalMetadata.Structs.Runtime;
 using HSRGlobalMetadata.Utils;
 
 namespace HSRGlobalMetadata.Structs.Definitions;
@@ -14,6 +14,6 @@ public class Il2CppGenericParameterConstraintDefinition : MetadataBase {
     public int ConstraintIndex { get; private set; }
 
     protected override void PostProcess() {
-        TypeName = ConstraintIndex == -1 ? "" : Il2CppType.FromIndex(ConstraintIndex).Name();
+        TypeName = ConstraintIndex == -1 ? "" : Il2CppType.FromMetadataIndex(ConstraintIndex).Name();
     }
 }

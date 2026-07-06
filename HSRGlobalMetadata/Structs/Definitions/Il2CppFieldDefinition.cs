@@ -30,12 +30,12 @@ public class Il2CppFieldDefinition : MetadataBase {
     protected override void PostProcess() {
         var lcd = -1388221511 - 744344320 * (_index + 1954887780);
 
-        Offset = BitConverter.ToUInt32(_bytes, MetadataHeader.Instance.FieldOffsetsOffset + (_index - _fieldStart + _fieldOffsetStart) * 4);
+        Offset = BitConverter.ToUInt32(_bytes, MetadataHeader.Instance.FieldOffsetsOffset + (_index - _fieldStart + _fieldOffsetStart) * 4) & 0x00FFFFFF;
         TypeIndex += lcd;
         NameIndex += lcd;
 
         Name = StringProcessor.Decrypt(NameIndex);
-        Type = Il2CppType.FromIndex(TypeIndex);
+        Type = Il2CppType.FromMetadataIndex(TypeIndex);
     }
     
     public object GetFieldStaticValue() {
@@ -46,7 +46,7 @@ public class Il2CppFieldDefinition : MetadataBase {
         
         if (entry.typeIndex == -1) return 0;
 
-        var type = Il2CppType.FromIndex(entry.typeIndex);
+        var type = Il2CppType.FromMetadataIndex(entry.typeIndex);
         var baseOffset = MetadataHeader.Instance.FieldAndParameterDefaultValueDataOffset + entry.dataOffset;
         var metadata = MetadataContext.Instance.Metadata;
 

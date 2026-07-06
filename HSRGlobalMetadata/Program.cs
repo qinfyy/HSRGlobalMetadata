@@ -16,17 +16,18 @@ static class Program {
         folderPath = folderPath.Trim('"');
 
         if (!Directory.Exists(folderPath)) {
-            Console.WriteLine("Game directory does not exist.");
+            Console.WriteLine("游戏目录不存在。");
             return;
         }
 
         var gameAssemblyPath = Directory.GetFiles(folderPath, "GameAssembly.dll").FirstOrDefault();
         if (gameAssemblyPath == null) {
-            Console.WriteLine("GameAssembly.dll not found.");
+            Console.WriteLine("未找到 GameAssembly.dll。");
             return;
         }
 
         PEHelper.ReadPEHeader(gameAssemblyPath);
+        StaticLayout.Initialize(gameAssemblyPath);
 
         string metadataPath = Path.Combine(
             folderPath,
@@ -37,7 +38,7 @@ static class Program {
         );
         
         if(!Path.Exists(metadataPath)) {
-          Console.WriteLine("global-metadata.dat not found.");
+          Console.WriteLine("未找到 global-metadata.dat。");
           return;
         }
 
@@ -50,31 +51,31 @@ static class Program {
         );
 
         if (!Path.Exists(startupMetadataPath)) {
-          Console.WriteLine("startup-metadata.dat not found.");
+          Console.WriteLine("未找到 startup-metadata.dat。");
           return;
         }           
 
-        Console.WriteLine("Initializing...");
+        Console.WriteLine("初始化中...");
         MetadataContext.Initialize(metadataPath, startupMetadataPath, gameAssemblyPath);
         MetadataHeader.Initialize(gameAssemblyPath);
         MetadataRegistration.Initialize(gameAssemblyPath);
         CodeRegistration.Initialize(gameAssemblyPath);
         MetadataTables.Initialize(gameAssemblyPath);
-        Console.WriteLine("Intiializing cache...");
+        Console.WriteLine("初始化缓存...");
         MetadataCache.Initialize();
-        Console.WriteLine("Initialization complete.");
+        Console.WriteLine("初始化完成。");
 
-        Console.WriteLine("Writing dump.cs...");
+        Console.WriteLine("写出 dump.cs...");
         DumpWriter.Write(folderPath);
 
-        Console.WriteLine("Writing stringliterals.json...");
+        Console.WriteLine("写出 stringliterals.json...");
         StringLiteralWriter.Write(folderPath);
         
-        Console.WriteLine("Finished.");
+        Console.WriteLine("完成。");
     }
 
     static string Prompt() {
-        Console.Write("Enter game folder: ");
+        Console.Write("请输入游戏目录: ");
         return Console.ReadLine() ?? "";
     }
 }

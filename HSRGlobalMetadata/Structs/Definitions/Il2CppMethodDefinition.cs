@@ -1,4 +1,4 @@
-using HSRGlobalMetadata.Structs.Runtime;
+﻿using HSRGlobalMetadata.Structs.Runtime;
 using HSRGlobalMetadata.Utils;
 
 namespace HSRGlobalMetadata.Structs.Definitions;
@@ -41,9 +41,8 @@ public class Il2CppMethodDefinition : MetadataBase {
     protected override void PostProcess() {
         ulong lcd = ((1410124276UL * ((738455933UL * ((ulong)(12769UL * (ulong)_index) ^ 0x33914937UL)) >> 23)) >> 21) + 1908176993;
         
-        uint flagsEnc = BitConverter.ToUInt32(_bytes, _baseOffset + 0x0C);
-        uint shuffled = (flagsEnc >> 16) | (flagsEnc << 16);
-        Flags = shuffled ^ (uint)((ushort)(lcd & 0xFFFF) | ((ushort)(lcd & 0xFFFF) << 16)) ^ 0x09F73733;
+        ushort flagsEnc = BitConverter.ToUInt16(_bytes, _baseOffset + 0x0E);
+        Flags = (uint)(flagsEnc ^ (ushort)lcd ^ StaticLayout.Instance.MethodAttributeXor);
 
         var val = PEHelper.RvaToOffset((uint)CodeRegistration.Instance.MethodPointer);
         MethodPointer = BitConverter.ToInt64(MetadataContext.Instance.GameAssembly, (int)val + _index * 8);
@@ -57,7 +56,7 @@ public class Il2CppMethodDefinition : MetadataBase {
 
         Name = StringProcessor.Decrypt(NameIndex);
         if (ReturnTypeIndex != -1)
-            ReturnType = Il2CppType.FromIndex(ReturnTypeIndex);
+            ReturnType = Il2CppType.FromSignatureIndex(ReturnTypeIndex);
         
         if (DeclaringTypeIndex != -1)
             DeclaringType = MetadataCache.TypeDefs[DeclaringTypeIndex];

@@ -1,4 +1,4 @@
-namespace HSRGlobalMetadata.Utils;
+﻿namespace HSRGlobalMetadata.Utils;
 
 using System.Runtime.CompilerServices;
 

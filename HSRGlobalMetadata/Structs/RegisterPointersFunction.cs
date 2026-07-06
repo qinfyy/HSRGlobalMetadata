@@ -1,4 +1,4 @@
-using HSRGlobalMetadata.Utils;
+﻿using HSRGlobalMetadata.Utils;
 
 namespace HSRGlobalMetadata.Structs;
 

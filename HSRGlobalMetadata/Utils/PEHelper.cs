@@ -2,12 +2,14 @@
 
 public struct SectionTable {
     public uint virtualAddr;
+    public uint virtualSize;
     public uint sizeOfRawData;
     public uint ptrToRawData;
 }
 
 public static class PEHelper {
     public static SectionTable[] sectionTables = [];
+    public static ulong ImageBase { get; private set; } = 0x180000000UL;
     
     public static ulong RvaToOffset(uint rva) {
         if (sectionTables == null || sectionTables.Length == 0)
@@ -15,9 +17,10 @@ public static class PEHelper {
         if (rva == 0) return 0;
 
         foreach (var section in sectionTables) {
-            ulong sumAddr = section.virtualAddr + section.sizeOfRawData;
+            ulong sectionSize = Math.Max(section.virtualSize, section.sizeOfRawData);
+            ulong sumAddr = section.virtualAddr + sectionSize;
         
-            if (rva >= section.virtualAddr && rva <= sumAddr) {
+            if (rva >= section.virtualAddr && rva < sumAddr) {
                 ulong offset = section.ptrToRawData + (rva - section.virtualAddr);
                 return offset;
             }
@@ -53,12 +56,22 @@ public static class PEHelper {
             ushort optionalHeaderSize = reader.ReadUInt16();
             reader.ReadUInt16();
         
-            reader.ReadBytes(optionalHeaderSize);
+            var optionalHeaderOffset = reader.BaseStream.Position;
+            ushort magic = reader.ReadUInt16();
+            if (magic == 0x20B) {
+                reader.BaseStream.Seek(optionalHeaderOffset + 0x18, SeekOrigin.Begin);
+                ImageBase = reader.ReadUInt64();
+            } else {
+                reader.BaseStream.Seek(optionalHeaderOffset + 0x1C, SeekOrigin.Begin);
+                ImageBase = reader.ReadUInt32();
+            }
+
+            reader.BaseStream.Seek(optionalHeaderOffset + optionalHeaderSize, SeekOrigin.Begin);
         
             var sections = new SectionTable[numberOfSections];
             for (int i = 0; i < numberOfSections; i++) {
                 reader.ReadBytes(8);
-                reader.ReadUInt32();
+                sections[i].virtualSize = reader.ReadUInt32();
                 sections[i].virtualAddr = reader.ReadUInt32();
                 sections[i].sizeOfRawData = reader.ReadUInt32();
                 sections[i].ptrToRawData = reader.ReadUInt32();

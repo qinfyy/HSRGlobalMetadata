@@ -91,14 +91,21 @@ public class MetadataHeader : MetadataBase {
     }
 
     public static void Initialize(string gameAssemblyPath) {
-        var headerOffset = PatternScanner.FindPatternInFile(gameAssemblyPath, "4D 48 59 00");
-        if (headerOffset == -1) {
-            Console.WriteLine("Failed to find GlobalMetadataHeaderPointer in binary");
-            return;
+        ulong headerOffset = PEHelper.RvaToOffset(StaticLayout.Instance.EmbeddedHeaderRva);
+        if (headerOffset == ulong.MaxValue) {
+            throw new Exception("无法将 embedded metadata header RVA 转换为文件偏移");
         }
-        
+
         byte[] bytes = new ArraySegment<byte>(MetadataContext.Instance.GameAssembly, (int)headerOffset, MetadataHeaderSize).ToArray();
 
         _instance = new MetadataHeader(bytes);
+        Console.WriteLine("Metadata header:");
+        Console.WriteLine($"  type table offset: 0x{_instance.TypeDefinitionsOffset:X}");
+        Console.WriteLine($"  field table offset: 0x{_instance.FieldsOffset:X}");
+        Console.WriteLine($"  method table offset: 0x{_instance.MethodOffset:X}");
+        Console.WriteLine($"  parameter table offset: 0x{_instance.ParametersOffset:X}");
+        Console.WriteLine($"  string data offset: 0x{_instance.StringOffset:X}");
+        Console.WriteLine($"  image count: {_instance.ImagesSize / 40}");
+        Console.WriteLine($"  type count: {_instance.TypeDefinitionsSize / 70}");
     }
 }

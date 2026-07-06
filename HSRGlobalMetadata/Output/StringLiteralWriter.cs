@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 
 using HSRGlobalMetadata.Structs;
 using HSRGlobalMetadata.Structs.Definitions;

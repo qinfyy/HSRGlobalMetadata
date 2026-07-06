@@ -4,6 +4,25 @@ using System;
 using System.IO;
 
 public static class PatternScanner {
+    public static IEnumerable<uint> FindPatternRvas(byte[] fileData, IReadOnlyList<byte?> pattern) {
+        int patLen = pattern.Count;
+
+        for (int i = 0; i <= fileData.Length - patLen; i++) {
+            bool found = true;
+            for (int j = 0; j < patLen; j++) {
+                if (pattern[j].HasValue && fileData[i + j] != pattern[j]!.Value) {
+                    found = false;
+                    break;
+                }
+            }
+
+            if (found) {
+                uint rva = PEHelper.OffsetToRva((ulong)i);
+                if (rva != 0) yield return rva;
+            }
+        }
+    }
+
     public static long FindPatternInFile(string filePath, ReadOnlySpan<byte> pattern, ReadOnlySpan<bool> mask) {
         if (!File.Exists(filePath))
             throw new FileNotFoundException($"File not found: {filePath}");

@@ -20,7 +20,7 @@ public class Il2CppTypeDefinition : MetadataBase {
     [MetadataTag(0x0C, MetadataOperation.SUB, 472568492)]
     public int DeclaringTypeIndex { get; set; }
 
-    [MetadataTag(0x14, MetadataOperation.SUB, 17986448)]
+    [MetadataTag(0x14, MetadataOperation.XOR, 0x01127490)]
     public int Flags { get; set; }
 
     [MetadataTag(0x1C, MetadataOperation.SUB, 970393327)]
@@ -74,8 +74,11 @@ public class Il2CppTypeDefinition : MetadataBase {
     public Il2CppType Parent { get; private set; }
 
     protected override void PostProcess() {
+        if (ParentIndex is 1 or 0x5D5E0 or 0x12EB)
+            ParentIndex = -1;
+
         if (ParentIndex != -1)
-            Parent = Il2CppType.FromIndex(ParentIndex);
+            Parent = Il2CppType.FromMetadataIndex(ParentIndex);
 
         Namespace = StringProcessor.Decrypt(NamespaceIndex);
         Name = StringProcessor.Decrypt(TypeNameIndex);
@@ -83,6 +86,9 @@ public class Il2CppTypeDefinition : MetadataBase {
 
     public int GetFieldOffsetIndex() {
         int mappedIndex = BitConverter.ToInt32(MetadataContext.Instance.Metadata, MetadataHeader.Instance.TypeIndexMapOffset + 4 * _index);
+        if (mappedIndex < 0)
+            return 0;
+
         int fieldOffsetEntry = BitConverter.ToInt32(MetadataContext.Instance.Metadata, MetadataHeader.Instance.IdxTableBaseOffset + 12 * mappedIndex + 8);
 
         return fieldOffsetEntry;
