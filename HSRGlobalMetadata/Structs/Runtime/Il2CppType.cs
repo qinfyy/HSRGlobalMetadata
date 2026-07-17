@@ -40,11 +40,12 @@ public class Il2CppType {
 
     public static Il2CppType FromIndex(int index) {
         if (index < 0 || index >= MetadataRegistration.Instance.TypeInfoCount) {
-            throw new ArgumentOutOfRangeException($"{nameof(index)}, value: {index}"); 
+            throw new ArgumentOutOfRangeException($"{nameof(index)}, value: {index}");
         }
         if (MetadataCache.Types != null && index < MetadataCache.Types.Length && MetadataCache.Types[index] != null)
             return MetadataCache.Types[index];
-        int offset = (int)PEHelper.RvaToOffset((uint)(MetadataRegistration.Instance.TypesRva + index * 8));
+        int stride = MetadataRegistration.Instance.TypeEntryStride;
+        int offset = (int)PEHelper.RvaToOffset((uint)(MetadataRegistration.Instance.TypesRva + index * stride));
 
         return new Il2CppType(offset);
     }
@@ -66,42 +67,28 @@ public class Il2CppType {
     }
 
     private static void ReadEntry(int offset, out ulong data, out ushort attrs, out byte type) {
+        // 4.4.51: data64 + meta64(attrs16 | type8 << 16), stride=16
         var bytes = MetadataContext.Instance.GameAssembly;
-        ulong rawData = BitConverter.ToUInt64(bytes, offset);
-        attrs = (ushort)(rawData >> 32);
-        type = (byte)(rawData >> 48);
-        data = ResolveData(rawData);
-
-        if (rawData < PEHelper.ImageBase || TryTypePointerToIndex(rawData, out _)) return;
-
-        ulong pointedOffset = PEHelper.RvaToOffset((uint)(rawData - PEHelper.ImageBase));
-        if (pointedOffset == ulong.MaxValue || pointedOffset + 8 > (ulong)bytes.Length) return;
-
-        ulong pointedRawData = BitConverter.ToUInt64(bytes, (int)pointedOffset);
-        data = ResolvePointedData(pointedRawData);
-        attrs = (ushort)(pointedRawData >> 32);
-        type = (byte)(pointedRawData >> 48);
-    }
-
-    private static ulong ResolveData(ulong rawData) {
-        if (rawData < PEHelper.ImageBase) return rawData & 0xFFFFFFFFUL;
-        return TryTypePointerToIndex(rawData, out var index) ? index : rawData;
-    }
-
-    private static ulong ResolvePointedData(ulong rawData) {
-        if (rawData < PEHelper.ImageBase) return rawData & 0xFFFFFFFFUL;
-        return TryTypePointerToIndex(rawData, out var index) ? index : (uint)rawData;
+        ulong dataRaw = BitConverter.ToUInt64(bytes, offset);
+        ulong meta = BitConverter.ToUInt64(bytes, offset + 8);
+        attrs = (ushort)meta;
+        type = (byte)(meta >> 16);
+        data = dataRaw < PEHelper.ImageBase ? dataRaw & 0xFFFFFFFFUL : dataRaw;
+        if (TryTypePointerToIndex(dataRaw, out var index)) {
+            data = index;
+        }
     }
 
     private static bool TryTypePointerToIndex(ulong typeVa, out ulong index) {
         index = 0;
         if (typeVa < PEHelper.ImageBase) return false;
 
+        int stride = MetadataRegistration.Instance.TypeEntryStride;
         ulong typeRva = typeVa - PEHelper.ImageBase;
         long byteOffset = (long)typeRva - MetadataRegistration.Instance.TypesRva;
-        if (byteOffset < 0 || byteOffset % 8 != 0) return false;
+        if (byteOffset < 0 || byteOffset % stride != 0) return false;
 
-        long typeIndex = byteOffset / 8;
+        long typeIndex = byteOffset / stride;
         if (typeIndex < 0 || typeIndex >= MetadataRegistration.Instance.TypeInfoCount) return false;
 
         index = (ulong)typeIndex;

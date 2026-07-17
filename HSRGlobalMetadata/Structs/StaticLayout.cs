@@ -44,9 +44,9 @@ public sealed class StaticLayout {
             uint metadataTablesRva = ReadLeaTargetRva(bytes, initializerRva + 28);
             uint embeddedHeaderRva = ReadLeaTargetRva(bytes, initializerRva + 56);
 
-            uint descriptorCount = unchecked(ReadUInt32Rva(bytes, descriptorRva + 0x80) + 0xE4B35170u);
+            // 4.4.51: desc+0x80 已是 types VA，不能再当加密 count 门闩
             uint methodSpan = ReadUInt32Rva(bytes, embeddedHeaderRva + 0x1F8) ^ 0x1608C2C8u;
-            if (descriptorCount > 100000 && methodSpan > 1000000) {
+            if (methodSpan > 1000000 && DescriptorLooksValid(bytes, descriptorRva)) {
                 return new StaticLayout {
                     StaticInitializerRva = initializerRva,
                     CodeRegistrationRva = codeRegistrationRva,
@@ -58,6 +58,50 @@ public sealed class StaticLayout {
         }
 
         throw new Exception("无法定位当前版本的 IL2CPP 静态元数据初始化函数");
+    }
+
+    /// <summary>4.4.51: gi@+0x38、types@+0x80（16 字节表项）。</summary>
+    private static bool DescriptorLooksValid(byte[] bytes, uint descriptorRva) {
+        ulong descOffset = PEHelper.RvaToOffset(descriptorRva);
+        if (descOffset == ulong.MaxValue || descOffset + 0x90 > (ulong)bytes.Length) return false;
+        int descOff = (int)descOffset;
+        ulong imageBase = PEHelper.ImageBase;
+
+        long PtrRva(int fieldOff) {
+            long va = BitConverter.ToInt64(bytes, descOff + fieldOff);
+            return va - (long)imageBase;
+        }
+
+        long giRva = PtrRva(0x38);
+        long typesRva = PtrRva(0x80);
+        if (giRva <= 0 || giRva >= 0x20000000L || typesRva <= 0 || typesRva >= 0x20000000L) return false;
+
+        ulong giFile = PEHelper.RvaToOffset((uint)giRva);
+        if (giFile == ulong.MaxValue || giFile + 8 * 16 > (ulong)bytes.Length) return false;
+        int giOff = (int)giFile;
+        int giGood = 0;
+        for (int i = 0; i < 8; i++) {
+            int baseOff = giOff + i * 16;
+            int argc = BitConverter.ToInt32(bytes, baseOff);
+            long arr = BitConverter.ToInt64(bytes, baseOff + 8);
+            if (argc >= 1 && argc <= 32 && (ulong)arr >= imageBase && (ulong)arr < imageBase + 0x20000000UL) {
+                giGood++;
+            }
+        }
+        if (giGood < 6) return false;
+
+        ulong typesFile = PEHelper.RvaToOffset((uint)typesRva);
+        if (typesFile == ulong.MaxValue || typesFile + 64 * 16 > (ulong)bytes.Length) return false;
+        int typesOff = (int)typesFile;
+        int typesGood = 0;
+        for (int i = 0; i < 64; i++) {
+            ulong meta = BitConverter.ToUInt64(bytes, typesOff + i * 16 + 8);
+            byte t = (byte)(meta >> 16);
+            if ((meta >> 32) == 0 && t >= 1 && t <= 0x1E) {
+                typesGood++;
+            }
+        }
+        return typesGood >= 48;
     }
 
     private static uint DiscoverExternalPayloadOffset(byte[] bytes) {

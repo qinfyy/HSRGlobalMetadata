@@ -1,4 +1,4 @@
-﻿using HSRGlobalMetadata.Utils;
+using HSRGlobalMetadata.Utils;
 
 namespace HSRGlobalMetadata.Structs;
 
@@ -7,12 +7,13 @@ public class MetadataTables : MetadataBase
     private static MetadataTables? _instance;
     public static MetadataTables Instance => _instance ?? throw new Exception("MetadataTables not initialized");
 
-    [MetadataTag(0x28)]
+    // 4.4.51: VA @+0x38, count @+0x2C XOR 0xBD08DC8
+    [MetadataTag(0x38)]
     public long StringLiteralVa { get; private set; }
 
     public uint StringLiteralRva { get; private set; }
 
-    [MetadataTag(0x40, MetadataOperation.XOR, 0xBD08DC8)]
+    [MetadataTag(0x2C, MetadataOperation.XOR, 0xBD08DC8)]
     public int StringLiteralCount { get; private set; }
 
     public MetadataTables(byte[] bytes) : base(bytes)
